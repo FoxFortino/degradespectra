@@ -1,4 +1,12 @@
+import sys
+import os
+
 import numpy as np
+import pandas as pd
+
+codedir = "/Users/admin/UDel/FASTLab/Summer2021_Research/SESNspectraPCA/code"
+sys.path.insert(0, codedir)
+import SNIDdataset as snid
 
 
 def calc_R_array(wvl):
@@ -145,3 +153,97 @@ def FWHM_to_STD(FWHM):
     conversion = 2 * np.sqrt(2 * np.log(2))
     stddev = FWHM / conversion
     return stddev
+
+
+def snid_to_arr(spec):
+    """
+    Take relevant arrays from a SNIDsn object and return them.
+
+    Arguments
+    ---------
+    spec : SNIDsn object
+        This SNIDsn object contains way more information than just the fluxes,
+        wavelengths, and uncertainties that we care about. So, extract them
+        separately.
+
+    Returns
+    -------
+    SNdata : dict
+        Dictionary containing arrays for the wavelength bin centers, the flux
+        values, the uncertainties on each flux measurement, the phase key
+        (epoch) of the supernova, and the name of the supernova.
+    """
+    flux = spec.data.astype(float)
+    wvl = spec.wavelengths.astype(float)
+    phase_key = list(spec.smooth_uncertainty.keys())[0]
+    err = spec.smooth_uncertainty[phase_key].astype(float)
+
+    SNdata = {
+        "wvl": wvl,
+        "flux": flux,
+        "err": err,
+        "phase_key": phase_key,
+        "SN": spec.header["SN"]
+    }
+
+    return SNdata
+
+
+def arr_to_csv(SNdata, directory):
+    """
+    Save wavelength, flux, and uncertainty information in a csv.
+
+    Arguments
+    ---------
+    SNdata : dict
+        Dictionary containing arrays for the wavelength bin centers, the flux
+        values, the uncertainties on each flux measurement, the phase key
+        (epoch) of the supernova, and the name of the supernova.
+
+    Returns
+    -------
+    None
+    """
+    data = {
+        "wvl": SNdata["wvl"],
+        "flux": SNdata["flux"],
+        "err": SNdata["err"]
+    }
+    df = pd.DataFrame(data, columns=["wvl", "flux", "err"])
+
+    name = SNdata["SN"]
+    df.to_csv(os.path.join(directory, f"{name}.csv"), index=False)
+
+
+def dataset_to_csv(pickle, datadir, savedir):
+    """
+    Convert a pickle file to individual csv files.
+
+    Currently, the stripped envelope supernova data and metadata are in these
+    pickle files from the SESNspectraPCA github repo. However, I want them as
+    individual csv files. So this function takes in a pickle file, which
+    represents a whole bunch of supernovae at a particular epoch, and converts
+    them indivudally to csv files and saves them in a chosen directory.
+
+    Arguments
+    ---------
+    pickle : str
+        Path to the pickled dataset of SNIDsn objects.
+    datadir : str
+        Path to the current pickle dataset files.
+    savedir : str
+        The directory to save the csv files to.
+
+    Returns
+    -------
+    None
+    """
+
+    dataset = snid.loadPickle(os.path.join(datadir, pickle))
+
+    if not os.path.isdir(savedir):
+        os.mkdir(savedir)
+
+    for sn, spec in dataset.items():
+        SNdata = snid_to_arr(spec)
+        arr_to_csv(SNdata, savedir)
