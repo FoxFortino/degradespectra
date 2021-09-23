@@ -9,7 +9,7 @@ NumPy, Matplotlib, imageio, glob
 <b>How to use `degrade()`:</b>
 `degrade()` is the function that actually degrades spectra. The user must supply three arrays of the same length: the wavelength bin centers, the fluxes corresponding to those bins, and the uncertainties on each flux measurement. Additionally, the desired R value (the new spectroscopic resolution to degrade to) must also be supplied.
 
-Recall that `R = $\frac{\lambda}{\Delta \lambda}$`. The new R value must be less than the current R of the spectra. The current R can be calculated with `calc_avg_R()`.
+Recall that R is the wavelength divided by the wavelength bin size. The new R value must be less than the current R of the spectra. The current R can be calculated with `calc_avg_R()`.
 
 The default spectral PSF that the spectrum is convolved with is a Gaussian with a FWHM that is proportional to $\Delta \lambda$. That is, the standard deviation of the Gaussian changes throughout the convolution. The user can specify can instead specify one value for the standard deviation, such that it is constant throughout the convolution. The user can also specify an array of standard deviations so that the width of the spectral PSF can be whatever the user desires it to be.
 
@@ -19,11 +19,11 @@ The `makegif` keyword argument can be used to create a gif of the convolution pr
 
 ![makegif keyword argument example](img/degrading_to_100.gif)
 
-Note how the peak of the kernel gets lower as the kernel moves to the right. This is because the width of the kernel is getting larger. Additionally notice at the edges the peak of the kernel is high. This is because the kernel is normalized to integrate to 1 on the domain of the bins, not from $[-\infinity,\infinity]$.
+Note how the peak of the kernel gets lower as the kernel moves to the right. This is because the width of the kernel is getting larger. Additionally notice at the edges the peak of the kernel is high. This is because the kernel is normalized to integrate to 1 on the domain of the bins, not from negative infinity to infinity.
 
 The `degrade()` function outputs three arrays: `new_wvl` (the new wavelength bin centers at the desired spectral resolution), `new_flux` (the properly degraded fluxes), and `new_err` (the new uncertainties).
 
 <b>How to use `plotSpec`:</b>
 `plotSpec()` is a handy function to make a pretty plot of spectra. The function needs the wavelength bin centers for the spectra, and the fluxes corresponding to those spectra. Optionally, the uncertainties on each flux measurement can be provided and they will be plotted as error bars on each flux measurement. An example plot of a spectrum at R = 100 looks like this:
 
-![spectrum plot example](img/sn1998dt_phase0_degraded100.pdf)
+![spectrum plot example](img/sn1998dt_phase0_degraded100.png)
