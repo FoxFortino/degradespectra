@@ -155,9 +155,40 @@ def FWHM_to_STD(FWHM):
     return stddev
 
 
-def snid_to_arr(spec):
+# def snid_to_arr(spec):
+#     """
+#     Take relevant arrays from a SNIDsn object and return them as three arrays.
+#
+#     Arguments
+#     ---------
+#     spec : SNIDsn object
+#         This SNIDsn object contains way more information than just the fluxes,
+#         wavelengths, and uncertainties that we care about. So, extract them
+#         separately.
+#
+#     Returns
+#     -------
+#
+#     """
+#     flux = spec.data.astype(float)
+#     wvl = spec.wavelengths.astype(float)
+#     phase_key = list(spec.smooth_uncertainty.keys())[0]
+#     err = spec.smooth_uncertainty[phase_key].astype(float)
+#
+#     SNdata = {
+#         "wvl": wvl,
+#         "flux": flux,
+#         "err": err,
+#         "phase_key": phase_key,
+#         "SN": spec.header["SN"]
+#     }
+#
+#     return SNdata
+
+
+def snid_to_dict(spec):
     """
-    Take relevant arrays from a SNIDsn object and return them.
+    Take relevant arrays from a SNIDsn object and return them as a dict.
 
     Arguments
     ---------
@@ -189,7 +220,7 @@ def snid_to_arr(spec):
     return SNdata
 
 
-def arr_to_csv(SNdata, directory):
+def dict_to_csv(SNdata, directory):
     """
     Save wavelength, flux, and uncertainty information in a csv.
 
@@ -245,5 +276,5 @@ def dataset_to_csv(pickle, datadir, savedir):
         os.mkdir(savedir)
 
     for sn, spec in dataset.items():
-        SNdata = snid_to_arr(spec)
-        arr_to_csv(SNdata, savedir)
+        SNdata = snid_to_dict(spec)
+        dict_to_csv(SNdata, savedir)

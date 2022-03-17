@@ -121,10 +121,13 @@ def plotSpec(wvl, flux, err=None, save=None):
     for patch, color in zip(patches, RGBA):
         patch.set_facecolor(color)
 
-    plt.xlabel(r"Wavelength [$\AA$]")
-    plt.ylabel(r"Normalized Flux [$F_{\lambda}$]")
+    plt.xlabel(r"Wavelength [$\AA$]", fontsize=40)
+    plt.ylabel(r"Normalized Flux [$F_{\lambda}$]", fontsize=40)
 
     plt.ylim((0, None))
+
+    plt.tick_params(axis='both', which='major', labelsize=30)
+    plt.tight_layout()
 
     if save is not None:
         plt.savefig(save)
