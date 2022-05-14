@@ -4,8 +4,6 @@ import os
 import numpy as np
 import pandas as pd
 
-codedir = "/Users/admin/UDel/FASTLab/Summer2021_Research/SESNspectraPCA/code"
-sys.path.insert(0, codedir)
 import SNIDdataset as snid
 
 
