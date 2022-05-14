@@ -1,3 +1,6 @@
+import os
+import shutil
+
 import utils
 
 import numpy as np
@@ -143,3 +146,37 @@ def plotSpec(wvl, flux, err=None, save=None):
         plt.savefig(save)
 
     plt.show()
+
+
+def make_frame(wvl, flux, flux_conv, G, G_max, R, r, i, gifdir):
+    fig = plt.figure(figsize=(14, 7))
+    plt.plot(wvl, flux,
+             c="k", lw=2,
+             label="Original Spectrum")
+    plt.plot(wvl, G*r,
+             c="tab:blue", lw=2,
+             label=f"Kernel * {r:.2f}")
+    plt.plot(wvl, G_max*r,
+             c="gray", ls=":", marker="o",
+             label=f"Kernel Max * {r:.2f}")
+    plt.plot(wvl, flux_conv,
+             c="tab:orange", lw=2,
+             label="Convolution")
+    
+    plt.axhline(y=G.max()*r, c="k", ls=":")
+    plt.legend(loc="upper right", fontsize=15)
+
+    plt.title(f"Degrading to R = {R}", fontsize=25)
+    plt.xlabel(r"Wavelength [$\AA$]", fontsize=25)
+    plt.ylabel(r"Normalized Flux [$F_{\lambda}$]", fontsize=25)
+
+    plt.tick_params(axis='both', which='major', labelsize=25)
+    plt.tight_layout()
+
+    plt.ylim((0, None))
+
+    file = os.path.join(gifdir, f"{i:03}.png")
+    plt.savefig(file)
+    fig.clear()
+    plt.close(fig)
+
