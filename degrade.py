@@ -13,8 +13,6 @@ import matplotlib.pyplot as plt
 
 codedir = "/Users/admin/UDel/FASTLab/Summer2021_Research/SESNspectraPCA/code"
 sys.path.insert(0, codedir)
-imagedir = "/Users/admin/UDel/FASTLab/Summer2021_Research/imagedir"
-plt.style.use('~/GitHub/custom-matplotlib/custom.mplstyle')
 
 
 def degrade(
@@ -169,7 +167,10 @@ def degrade(
 
         # Perform one step of the integration of t
         flux_conv[i] = np.trapz(flux * G, x=wvl)
-        err_conv[i] = np.trapz(err * G, x=wvl)
+        
+        # For Gaussian convolutions, the errors should be convolved
+        # with the square of the kernel.
+        err_conv[i] = np.trapz(err * G**2, x=wvl)
 
         if makegif:
             if i == 0:
@@ -313,12 +314,16 @@ def degrade_inplace(
     # in cgs units.
     wvl = spec.wavelengths.astype(float)  # * u.angstrom
     flux = spec.data.astype(float)  # * u.erg / u.s / u.cm**2 / u.angstrom
-    flux -= flux.min()
+    # flux -= flux.min()  # This is not necessarily a good thing to do, even though it makes for a prettier plot.
 
     # Unpack the uncertainties on the spectrum. Assume it has the same units
     # as the flux.
-    phase_key = list(spec.smooth_uncertainty.keys())[0]
-    err = spec.smooth_uncertainty[phase_key].astype(float)
+    if spec.smooth_uncertainty != {}:
+        uncertainties = True
+        phase_key = list(spec.smooth_uncertainty.keys())[0]
+        err = spec.smooth_uncertainty[phase_key].astype(float)
+    else:
+        uncertainties = False
 
     R_current = utils.calc_avg_R(wvl)
     errmsg = (f"Current R: {R_current}. Chosen R: {R}. "
@@ -385,7 +390,11 @@ def degrade_inplace(
 
         # Perform one step of the integration of t
         flux_conv[i] = np.trapz(flux * G, x=wvl)
-        err_conv[i] = np.trapz(err * G, x=wvl)
+        
+        # For Gaussian convolutions, the errors should be convolved
+        # with the square of the kernel.
+        if uncertainties:
+            err_conv[i] = np.trapz(err * G**2, x=wvl)
 
         if makegif:
             if i == 0:
@@ -438,16 +447,26 @@ def degrade_inplace(
     # Interpolate the convolved spectra at the new wavelength centers to get
     # the degraded spectra.
     new_flux = np.interp(new_wvl, wvl, flux_conv)
-    new_err = np.interp(new_wvl, wvl, err_conv)
+    if uncertainties:
+        new_err = np.interp(new_wvl, wvl, err_conv)
+        
+    # new_flux[wvl < wvl[array_starts[0]]] = 0
 
     # Repack the SNIDsn object with the rebinned wavelength array and the
     # degraded spectra and errors.
-    new_err_dict = {}
-    new_err_dict[phase_key] = np.array(new_err)
+    if uncertainties:
+        new_err_dict = {}
+        new_err_dict[phase_key] = np.array(new_err)
 
     spec.wavelengths = np.array(new_wvl)
     spec.data = np.array(new_flux).astype(data_dtype)
-    spec.smooth_uncertainty = new_err_dict
+    if uncertainties:
+        spec.smooth_uncertainty = new_err_dict
+        
+    # WFF TODO
+    # Work out how many bins there should be from 10000 to 2500.
+    # Use bin size or whatever
+    spec.header["Nbins"] = len(spec.wavelengths)
 
 
 if __name__ == "__main__":

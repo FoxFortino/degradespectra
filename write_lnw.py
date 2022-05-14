@@ -5,7 +5,7 @@ This function should be a method of the SNIDsn class.
 """
 
 
-def write_lnw(self):
+def write_lnw(self, overwrite=False):
     file_lines = []
     filename = 'new_' + self.header['SN'] + '.lnw'
     header_items = []
@@ -75,7 +75,12 @@ def write_lnw(self):
                 fluxes.append('   ' + str('{:.3f}'.format(line[i], 3)))
         count += 1
         file_lines.append(fluxes)
-    with open(filename, 'x') as lnw:
+    # WFF
+    filemode = "x"
+    if overwrite:
+        filemode = "w"
+
+    with open(filename, filemode) as lnw:
         for line in file_lines:
             for i in range(len(line)):
                 lnw.write(line[i])

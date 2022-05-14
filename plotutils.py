@@ -32,8 +32,13 @@ def wavelen2rgb(nm):
             return max_intensity
         return rv
 
-    if nm < 380 or nm > 780:
-        raise ValueError('wavelength out of range')
+    # if nm < 380 or nm > 780:
+    #     raise ValueError('wavelength out of range')
+    if nm < 380:
+        nm = 380
+    if nm > 780:
+        nm = 780
+    
     red = 0.0
     green = 0.0
     blue = 0.0
@@ -110,8 +115,12 @@ def plotSpec(wvl, flux, err=None, save=None):
     # wvl_LE_plus1 = add_extra_point(wvl_LE)  # Add rightmost bin edge plt.hist
 
     plt.figure(figsize=(20, 10))
-    plt.errorbar(wvl[:-1], flux[:-1], yerr=err[:-1],
-                 elinewidth=1, capsize=3,
+    if err is not None:
+        plt.errorbar(wvl[:-1], flux[:-1], yerr=err[:-1],
+                     elinewidth=1, capsize=3,
+                     ls="-", c="k", marker="*")
+    else:
+        plt.plot(wvl[:-1], flux[:-1],
                  ls="-", c="k", marker="*")
     _, _, patches = plt.hist(wvl_LE[:-1], bins=wvl_LE,
                              weights=flux[:-1], align="mid")
@@ -124,7 +133,8 @@ def plotSpec(wvl, flux, err=None, save=None):
     plt.xlabel(r"Wavelength [$\AA$]", fontsize=40)
     plt.ylabel(r"Normalized Flux [$F_{\lambda}$]", fontsize=40)
 
-    plt.ylim((0, None))
+    bounds = flux.max() + flux.max()*0.05
+    plt.ylim((-bounds, bounds))
 
     plt.tick_params(axis='both', which='major', labelsize=30)
     plt.tight_layout()
