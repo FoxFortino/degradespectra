@@ -33,7 +33,13 @@ def degrade(
     spectral resolution and then rebins it, via convolution, to a new spectral
     resolution, R.
     
-    I make an assumption about the units of the flux and wavelength arrays as provided by the SESNtemple and the astrodash GitHub repositories. I am confident that the wavelengths are in units of angstroms, but as far as I can tell the units of flux are just some normalized flux units (according to Williamson & Modjaz & Bianco (2019) about SESN PCA) which obviously isn't helpful. However, I have assumed that they have units of F_lambda in cgs units.
+    I make an assumption about the units of the flux and wavelength arrays as
+    provided by the SESNtemple and the astrodash GitHub repositories. I am
+    confident that the wavelengths are in units of angstroms, but as far as I
+    can tell the units of flux are just some normalized flux units (according
+    to Williamson & Modjaz & Bianco (2019) about SESN PCA) which obviously
+    isn't helpful. However, I have assumed that they have units of F_lambda in
+    cgs units.
 
     Arguments
     ---------
@@ -88,7 +94,8 @@ def degrade(
         If True, a gif will be made of the convolution which will be saved at
         the image directory (imagedir defined at the top of the script).
     savepath : str, Default: "."
-        If makegif is True then you can use this kwarg to specify where the resulting gif is saved.
+        If makegif is True then you can use this kwarg to specify where the
+        resulting gif is saved.
 
     Returns
     -------
@@ -101,12 +108,14 @@ def degrade(
         
         R_current = utils.calc_avg_R(wvl)
         errmsg = (f"Current R: {R_current}. Chosen R: {R}. "
-                f"You cannot upsample the spectrum. "
-                "Choose a smaller spectral resolution, R.")
+                  f"You cannot upsample the spectrum. "
+                  "Choose a smaller spectral resolution, R.")
         assert R < R_current, errmsg
 
         # Calculate the left edges of the bins for later on.
-        wvl_LE = utils.adjust_logbins(wvl, current="center", new="leftedge")
+        wvl_LE = utils.adjust_logbins(wvl,
+                                      current="center",
+                                      new="leftedge")
         new_wvl_LE0 = wvl_LE[0]  # Set leftmost bin edge of new bins
         new_dlam0 = new_wvl_LE0 / R  # Find width of first new bin based on R
         new_wvl_LE1 = new_wvl_LE0 + new_dlam0  # Find left edge of second bin
@@ -117,7 +126,9 @@ def degrade(
         approx_end = np.log(wvl_LE[-1]) + new_d_loglam
         new_logwvl_LE = np.arange(logwvl_LE0, approx_end, new_d_loglam)
         new_wvl_LE = np.exp(new_logwvl_LE)
-        new_wvl = utils.adjust_logbins(new_wvl_LE, current="leftedge", new="center")
+        new_wvl = utils.adjust_logbins(new_wvl_LE,
+                                       current="leftedge",
+                                       new="center")
         
         # The flux data in the SNIDsn objects is in a structured array, so to
         # recreate that (with my limited understanding of numpy's structured
@@ -135,8 +146,9 @@ def degrade(
             new_uncer_dict = {}
         else:
             new_uncer_dict = {phase: None for phase in SNIDobj.phases}
-        
-        
+
+        # Need to loop through each phase because each phase represents a
+        # different spectrum and we need to degrade each spectrum individually.
         for phase in SNIDobj.phases:
             # Access the structured array that this data is stored in with the
             # appropriate phase key, e.g.: "Ph-4.8" for data coresponding to a
@@ -162,7 +174,7 @@ def degrade(
                 # handling convolutions where the kernel changes at each step
                 # of the integration. Specifically we assume the FWHM of the
                 # appropriate Gaussian kernel is
-                #   FWHM = d_lambda * R_old / R_new
+                #     FWHM = d_lambda * R_old / R_new
 
                 # Start by generating the array of FWHM for each kernel, and
                 # then converting to an array of standard deviations. I could
