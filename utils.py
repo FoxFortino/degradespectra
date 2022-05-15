@@ -153,126 +153,93 @@ def FWHM_to_STD(FWHM):
     return stddev
 
 
-# def snid_to_arr(spec):
-#     """
-#     Take relevant arrays from a SNIDsn object and return them as three arrays.
-#
-#     Arguments
-#     ---------
-#     spec : SNIDsn object
-#         This SNIDsn object contains way more information than just the fluxes,
-#         wavelengths, and uncertainties that we care about. So, extract them
-#         separately.
-#
-#     Returns
-#     -------
-#
-#     """
-#     flux = spec.data.astype(float)
-#     wvl = spec.wavelengths.astype(float)
-#     phase_key = list(spec.smooth_uncertainty.keys())[0]
-#     err = spec.smooth_uncertainty[phase_key].astype(float)
-#
-#     SNdata = {
-#         "wvl": wvl,
-#         "flux": flux,
-#         "err": err,
-#         "phase_key": phase_key,
-#         "SN": spec.header["SN"]
-#     }
-#
-#     return SNdata
-
-
-def snid_to_dict(spec):
+def write_lnw(self, overwrite=False):
     """
-    Take relevant arrays from a SNIDsn object and return them as a dict.
+    Taken from Pull Request #10 at nyusngroup/SESNspectraPCA repository.
 
-    Arguments
-    ---------
-    spec : SNIDsn object
-        This SNIDsn object contains way more information than just the fluxes,
-        wavelengths, and uncertainties that we care about. So, extract them
-        separately.
-
-    Returns
-    -------
-    SNdata : dict
-        Dictionary containing arrays for the wavelength bin centers, the flux
-        values, the uncertainties on each flux measurement, the phase key
-        (epoch) of the supernova, and the name of the supernova.
+    This function should be a method of the SNIDsn class.
     """
-    flux = spec.data.astype(float)
-    wvl = spec.wavelengths.astype(float)
-    phase_key = list(spec.smooth_uncertainty.keys())[0]
-    err = spec.smooth_uncertainty[phase_key].astype(float)
+    file_lines = []
+    filename = 'new_' + self.header['SN'] + '.lnw'
+    header_items = []
+    header_items.append('   ' + str(self.header['Nspec']))
+    header_items.append(' ' + str(self.header['Nbins']))
+    header_items.append('   ' + str('{:.2f}'.format(self.header['WvlStart'])))
+    header_items.append('  ' + str('{:.2f}'.format(self.header['WvlEnd'])))
+    header_items.append('     ' + str(self.header['SplineKnots']))
+    header_items.append('     ' + str(self.header['SN']))
+    header_items.append('      ' + str(self.header['dm15']))
+    header_items.append('  ' + str(self.header['TypeStr']))
+    header_items.append('     ' + str(self.header['TypeInt']))
+    header_items.append('  ' + str(self.header['SubTypeInt']))
+    header_line = ''
+    for item in header_items:
+        header_line += item
+    file_lines.append(header_line)
+    continuum = self.continuum.tolist()
+    continuum_header = continuum[0]
+    continuum_line = ''
+    for i in range(len(continuum_header)):
+        if float(continuum_header[i]) == int(continuum_header[i]):
+            item = int(continuum_header[i])
+        else:
+            item = continuum_header[i]
+        if i == 0:
+            continuum_line += '     ' + str(item)
+        elif i % 2 == 0:
+            continuum_line += '       ' + str('{:.5f}'.format(item))
+        else:
+            if item >= 10:
+                continuum_line += ' ' + str(item)
+            else:
+                continuum_line += '  ' + str(item)
+    file_lines.append(continuum_line)
+    continuum_all = ''
+    for i in range(1, len(continuum)):
+        for j in range(len(continuum[i])):
+            item = str('{:.4f}'.format(continuum[i][j]))
+            if j == 0:
+                continuum_all += '      ' + str(i)
+            else:
+                if j % 2 == 0 and float(item) > 0:
+                    continuum_all += '   ' + item
+                else:
+                    continuum_all += '  ' + item
+        file_lines.append(continuum_all)
+        continuum_all = ''
+    phases = ['       0']
+    str_phase = self.data.dtype.names
+    for phase in str_phase:
+        # WFF
+        # If there are two spectra at the same phase, the second one gets its
+        # phase key appended with "v1". This line removes that bit.
+        phase = phase.split("v")[0]
+        if float(phase[2:]) < 100:
+            phases.append('   ' + str('{:.3f}'.format(float(phase[2:]))))
+        else:
+            phases.append('  ' + str('{:.3f}'.format(float(phase[2:]))))
+    file_lines.append(phases)
+    data = self.data.tolist()
+    wvl = self.wavelengths
+    count = 0
+    for line in data:
+        fluxes = []
+        fluxes.append(' ' + str('{:.2f}'.format(wvl[count], 2)))
+        for i in range(len(line)):
+            if line[i] >= 0:
+                fluxes.append('    ' + str('{:.3f}'.format(line[i], 3)))
+            else:
+                fluxes.append('   ' + str('{:.3f}'.format(line[i], 3)))
+        count += 1
+        file_lines.append(fluxes)
+    # WFF
+    filemode = "x"
+    if overwrite:
+        filemode = "w"
 
-    SNdata = {
-        "wvl": wvl,
-        "flux": flux,
-        "err": err,
-        "phase_key": phase_key,
-        "SN": spec.header["SN"]
-    }
-
-    return SNdata
-
-
-def dict_to_csv(SNdata, directory):
-    """
-    Save wavelength, flux, and uncertainty information in a csv.
-
-    Arguments
-    ---------
-    SNdata : dict
-        Dictionary containing arrays for the wavelength bin centers, the flux
-        values, the uncertainties on each flux measurement, the phase key
-        (epoch) of the supernova, and the name of the supernova.
-
-    Returns
-    -------
-    None
-    """
-    data = {
-        "wvl": SNdata["wvl"],
-        "flux": SNdata["flux"],
-        "err": SNdata["err"]
-    }
-    df = pd.DataFrame(data, columns=["wvl", "flux", "err"])
-
-    name = SNdata["SN"]
-    df.to_csv(os.path.join(directory, f"{name}.csv"), index=False)
-
-
-def dataset_to_csv(pickle, datadir, savedir):
-    """
-    Convert a pickle file to individual csv files.
-
-    Currently, the stripped envelope supernova data and metadata are in these
-    pickle files from the SESNspectraPCA github repo. However, I want them as
-    individual csv files. So this function takes in a pickle file, which
-    represents a whole bunch of supernovae at a particular epoch, and converts
-    them indivudally to csv files and saves them in a chosen directory.
-
-    Arguments
-    ---------
-    pickle : str
-        Path to the pickled dataset of SNIDsn objects.
-    datadir : str
-        Path to the current pickle dataset files.
-    savedir : str
-        The directory to save the csv files to.
-
-    Returns
-    -------
-    None
-    """
-
-    dataset = snid.loadPickle(os.path.join(datadir, pickle))
-
-    if not os.path.isdir(savedir):
-        os.mkdir(savedir)
-
-    for sn, spec in dataset.items():
-        SNdata = snid_to_dict(spec)
-        dict_to_csv(SNdata, savedir)
+    with open(filename, filemode) as lnw:
+        for line in file_lines:
+            for i in range(len(line)):
+                lnw.write(line[i])
+            lnw.write('\n')
+        lnw.close()

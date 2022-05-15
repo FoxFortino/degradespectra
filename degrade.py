@@ -23,7 +23,8 @@ def degrade(
     spectral_PSF=None,
     PSF_args={},
     makegif=False,
-    savepath="."
+    savepath=".",
+    print_info=False
         ):
     """
     Re-binning spectra properly with convolution
@@ -111,6 +112,11 @@ def degrade(
                   f"You cannot upsample the spectrum. "
                   "Choose a smaller spectral resolution, R.")
         assert R < R_current, errmsg
+        
+        if print_info:
+            print(f"{SNIDobj.header['SN']}", end=", ")
+            print(f"{SNIDobj.header['TypeStr']}", end=", ")
+            print(f"Current R: {R_current:.2f}", end="\n\n")
 
         # Calculate the left edges of the bins for later on.
         wvl_LE = utils.adjust_logbins(wvl,
@@ -137,10 +143,10 @@ def degrade(
         
         # Generates a list of tuples which contain the column names and dtypes
         # for the structured array that will hold the new degraded flux values.
-        dtypes = []
-        for phase in SNIDobj.phases:
-            dtypes.append(("Ph" + str(phase), np.float32))
+        phase_keys = list(SNIDobj.data.dtype.names)
+        dtypes = [(phase_key, np.float32) for phase_key in phase_keys]
         new_data = np.zeros(new_Nbins, dtype=dtypes)
+
         
         if SNIDobj.smooth_uncertainty == {}:
             new_uncer_dict = {}
@@ -149,11 +155,10 @@ def degrade(
 
         # Need to loop through each phase because each phase represents a
         # different spectrum and we need to degrade each spectrum individually.
-        for phase in SNIDobj.phases:
+        for phase_key in phase_keys:
             # Access the structured array that this data is stored in with the
             # appropriate phase key, e.g.: "Ph-4.8" for data coresponding to a
             # phase of -4.8 days.
-            phase_key = "Ph" + str(phase)
             flux = SNIDobj.data[phase_key].astype(float)
             
             # Unpack the uncertainties on the spectrum. Assume it has the same
@@ -280,6 +285,46 @@ def degrade(
     #                   f"shape {wvl.shape}.")
     #         assert uncer.shape == wvl.shape, errmsg
 
+    
+def degrade_lnw(lnw, R, savepath, print_info=True):
+    SNIDobj = SNIDsn.SNIDsn()
+    SNIDobj.loadSNIDlnw(lnw)
+
+    if print_info:
+        print(lnw)
+    degrade(R, SNIDobj, print_info=True)
+    utils.write_lnw(SNIDobj, overwrite=True)
+
+    filename = 'new_' + SNIDobj.header['SN'] + '.lnw'
+    current_file = os.path.join(os.getcwd(), filename)
+    new_file = os.path.join(savepath, filename)
+    shutil.move(current_file, new_file)
+
+    return new_file, SNIDobj
+
+
+def degrade_all(R,
+                lnw_files,
+                savepath,
+                overwrite_R_dir=True,
+                print_info=True
+                   ):
+    errmsg = f"{savepath} does not exist. Please create it first."
+    assert os.path.isdir(savepath), errmsg
+
+    R_dir = os.path.join(savepath, str(R))
+    if os.path.isdir(R_dir) and overwrite_R_dir:
+        shutil.rmtree(R_dir)
+        os.mkdir(R_dir)
+    elif os.path.isdir(R_dir) and not overwrite_R_dir:
+        pass
+    else:
+        os.mkdir(R_dir)
+
+    for i, lnw in enumerate(lnw_files):
+        if print_info:
+            print(f"{int(i+1):05}", end=":  ")
+        degrade_lnw(lnw, R, R_dir, print_info=print_info)
 
 
 if __name__ == "__main__":
