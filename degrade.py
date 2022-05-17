@@ -116,7 +116,8 @@ def degrade(
         if print_info:
             print(f"{SNIDobj.header['SN']}", end=", ")
             print(f"{SNIDobj.header['TypeStr']}", end=", ")
-            print(f"Current R: {R_current:.2f}", end="\n\n")
+            print(f"Current R: {R_current:.2f}", end=" -> ")
+            print(f"New R: {R:.2f}", end="\n\n")
 
         # Calculate the left edges of the bins for later on.
         wvl_LE = utils.adjust_logbins(wvl,
@@ -264,7 +265,7 @@ def degrade(
         # Adjust the header of the SNIDsn object to reflect changes
         SNIDobj.header["Nbins"] = len(SNIDobj.wavelengths)
 
-        # Continuum information is no longer valid so make it all nan.
+        # Continuum information is no longer valid so make it all some number.
         SNIDobj.continuum[...] = 0
     
     # elif isinstance(wvl, np.ndarray) and isinstance(flux, np.ndarray):
@@ -297,7 +298,7 @@ def degrade_lnw(lnw, R, savepath, print_info=True):
 
     filename = 'new_' + SNIDobj.header['SN'] + '.lnw'
     current_file = os.path.join(os.getcwd(), filename)
-    new_file = os.path.join(savepath, filename)
+    new_file = os.path.join(savepath, SNIDobj.header['SN'] + '.lnw')
     shutil.move(current_file, new_file)
 
     return new_file, SNIDobj
@@ -320,6 +321,15 @@ def degrade_all(R,
         pass
     else:
         os.mkdir(R_dir)
+        
+    # Create this templist file. In reality, astrodash does this in a more
+    # complicated way, and removes some files in the process. If you want to
+    # do that, then do that before running this function and just supply the
+    # proper list of lnw files to this function.
+    with open(os.path.join(R_dir, "templist.txt"), "w") as f:
+        lnw_list = sorted([os.path.basename(file) for file in lnw_files])
+        for lnw in lnw_list:
+            f.write(os.path.basename(lnw) + "\n")
 
     for i, lnw in enumerate(lnw_files):
         if print_info:
