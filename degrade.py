@@ -293,15 +293,21 @@ def degrade_lnw(lnw, R, savepath, print_info=True):
 
     if print_info:
         print(lnw)
-    degrade(R, SNIDobj, print_info=True)
+    degrade(R, SNIDobj, print_info=print_info)
     utils.write_lnw(SNIDobj, overwrite=True)
 
-    filename = 'new_' + SNIDobj.header['SN'] + '.lnw'
-    current_file = os.path.join(os.getcwd(), filename)
-    new_file = os.path.join(savepath, SNIDobj.header['SN'] + '.lnw')
-    shutil.move(current_file, new_file)
+    new_lnw = 'new_' + SNIDobj.header['SN'] + '.lnw'
+    new_file = os.path.join(os.getcwd(), new_lnw)
 
-    return new_file, SNIDobj
+    if "_bsnip" in os.path.basename(lnw):
+        changed_lnw = SNIDobj.header['SN'] + "_bsnip" + ".lnw"
+    else:
+        changed_lnw = SNIDobj.header['SN'] + ".lnw"
+        
+    changed_file = os.path.join(savepath, changed_lnw)
+    shutil.move(new_file, changed_file)
+
+    return changed_file, SNIDobj
 
 
 def degrade_all(R,
